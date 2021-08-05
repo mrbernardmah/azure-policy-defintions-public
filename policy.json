@@ -1,0 +1,84 @@
+{
+ "properties": {
+  "displayName": "Global | Required Group Tags for Resource Groups",
+  "policyType": "Custom",
+  "mode": "All",
+  "metadata": {
+   "category": "Compliance",
+   "createdBy": "d85c3166-25d7-425f-b3b4-259c20e478ee",
+   "createdOn": "2021-08-05T05:41:58.1914591Z",
+   "updatedBy": null,
+   "updatedOn": null
+  },
+  "parameters": {
+   "Owner:department": {
+    "type": "String",
+    "metadata": {
+     "displayName": "Owner:department",
+     "description": "Name of the department that owns the system. This should be considered the cost center."
+    }
+   },
+   "Owner:project": {
+    "type": "String",
+    "metadata": {
+     "displayName": "Owner:project",
+     "description": "The name of the project/system. "
+    }
+   },
+   "Environment": {
+    "type": "String",
+    "metadata": {
+     "displayName": "Environment",
+     "description": "Provides information on what the resource group is used for (useful for maintenance, policy enforcement, chargeback, etc.) Tag value: Dev, QA, Stage, Test, Prod. Example: Prod"
+    }
+   },
+   "Owner:team": {
+    "type": "String",
+    "metadata": {
+     "displayName": "Owner:team",
+     "description": "The team that best owns the asset. If it’s completely shared with the department, reuse the department name."
+    }
+   }
+  },
+  "policyRule": {
+   "if": {
+    "allOf": [
+     {
+      "field": "type",
+      "equals": "Microsoft.Resources/subscriptions/resourceGroups"
+     },
+     {
+      "not": {
+       "field": "[concat('tags[',parameters('Owner:department'), ']')]",
+       "exists": "true"
+      }
+     },
+     {
+      "not": {
+       "field": "[concat('tags[',parameters('Owner:project'), ']')]",
+       "exists": "true"
+      }
+     },
+     {
+      "not": {
+       "field": "[concat('tags[',parameters('Environment'), ']')]",
+       "exists": "true"
+      }
+     },
+     {
+      "not": {
+       "field": "[concat('tags[',parameters('Owner:team'), ']')]",
+       "exists": "true"
+      }
+     }
+    ]
+   },
+   "then": {
+    "effect": "deny"
+   }
+  }
+ },
+ "id": "/subscriptions/0892a31b-4124-4301-b110-2c415315be46/providers/Microsoft.Authorization/policyDefinitions/f86f20db-2879-47f6-a516-80ee31801a30",
+ "type": "Microsoft.Authorization/policyDefinitions",
+ "name": "f86f20db-2879-47f6-a516-80ee31801a30"
+}
