@@ -1,0 +1,611 @@
+[
+  {
+    "name": "deploy-diag-keyvault-to-loganalytics",
+    "properties": {
+      "displayName": "Deploy diagnostic settings for Key Vaults to a Log Analytics workspace",
+      "description": "Deploys diagnostic settings (all logs + all metrics) for Key Vaults to a Log Analytics workspace if they do not exist.",
+      "policyType": "Custom",
+      "mode": "Indexed",
+      "metadata": { "category": "Monitoring", "version": "1.0.0" },
+      "parameters": {
+        "effect": { "type": "String", "metadata": { "displayName": "Effect" }, "allowedValues": ["DeployIfNotExists", "AuditIfNotExists", "Disabled"], "defaultValue": "DeployIfNotExists" },
+        "profileName": { "type": "String", "metadata": { "displayName": "Profile name", "description": "Name of the diagnostic setting." }, "defaultValue": "AzPolicyDiagnosticSetting" },
+        "logAnalytics": { "type": "String", "metadata": { "displayName": "Log Analytics workspace", "description": "Resource ID of the workspace.", "strongType": "omsWorkspace", "assignPermissions": true } },
+        "metricsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable metrics" }, "defaultValue": true },
+        "logsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable logs" }, "defaultValue": true }
+      },
+      "policyRule": {
+        "if": { "field": "type", "equals": "Microsoft.KeyVault/vaults" },
+        "then": {
+          "effect": "[parameters('effect')]",
+          "details": {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "name": "[parameters('profileName')]",
+            "existenceCondition": {
+              "allOf": [
+                { "field": "Microsoft.Insights/diagnosticSettings/logs.enabled", "equals": "[parameters('logsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled", "equals": "[parameters('metricsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/workspaceId", "equals": "[parameters('logAnalytics')]" }
+              ]
+            },
+            "roleDefinitionIds": [
+              "/providers/microsoft.authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+              "/providers/microsoft.authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "resourceName": { "type": "string" },
+                    "location": { "type": "string" },
+                    "logAnalytics": { "type": "string" },
+                    "profileName": { "type": "string" },
+                    "metricsEnabled": { "type": "bool" },
+                    "logsEnabled": { "type": "bool" }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.KeyVault/vaults/providers/diagnosticSettings",
+                      "apiVersion": "2021-05-01-preview",
+                      "name": "[concat(parameters('resourceName'), '/Microsoft.Insights/', parameters('profileName'))]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "workspaceId": "[parameters('logAnalytics')]",
+                        "metrics": [ { "category": "AllMetrics", "enabled": "[parameters('metricsEnabled')]" } ],
+                        "logs": [ { "categoryGroup": "allLogs", "enabled": "[parameters('logsEnabled')]" } ]
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "resourceName": { "value": "[field('name')]" },
+                  "location": { "value": "[field('location')]" },
+                  "logAnalytics": { "value": "[parameters('logAnalytics')]" },
+                  "profileName": { "value": "[parameters('profileName')]" },
+                  "metricsEnabled": { "value": "[parameters('metricsEnabled')]" },
+                  "logsEnabled": { "value": "[parameters('logsEnabled')]" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "deploy-diag-storageaccount-to-loganalytics",
+    "properties": {
+      "displayName": "Deploy diagnostic settings for Storage Accounts (account-level metrics) to a Log Analytics workspace",
+      "description": "Deploys account-level diagnostic settings for Storage Accounts. Account level supports metrics only; logs are configured per service (blob, file, queue, table) by the companion definitions.",
+      "policyType": "Custom",
+      "mode": "Indexed",
+      "metadata": { "category": "Monitoring", "version": "1.0.0" },
+      "parameters": {
+        "effect": { "type": "String", "metadata": { "displayName": "Effect" }, "allowedValues": ["DeployIfNotExists", "AuditIfNotExists", "Disabled"], "defaultValue": "DeployIfNotExists" },
+        "profileName": { "type": "String", "metadata": { "displayName": "Profile name" }, "defaultValue": "AzPolicyDiagnosticSetting" },
+        "logAnalytics": { "type": "String", "metadata": { "displayName": "Log Analytics workspace", "strongType": "omsWorkspace", "assignPermissions": true } },
+        "metricsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable metrics" }, "defaultValue": true }
+      },
+      "policyRule": {
+        "if": { "field": "type", "equals": "Microsoft.Storage/storageAccounts" },
+        "then": {
+          "effect": "[parameters('effect')]",
+          "details": {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "name": "[parameters('profileName')]",
+            "existenceCondition": {
+              "allOf": [
+                { "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled", "equals": "[parameters('metricsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/workspaceId", "equals": "[parameters('logAnalytics')]" }
+              ]
+            },
+            "roleDefinitionIds": [
+              "/providers/microsoft.authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+              "/providers/microsoft.authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "resourceName": { "type": "string" },
+                    "location": { "type": "string" },
+                    "logAnalytics": { "type": "string" },
+                    "profileName": { "type": "string" },
+                    "metricsEnabled": { "type": "bool" }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Storage/storageAccounts/providers/diagnosticSettings",
+                      "apiVersion": "2021-05-01-preview",
+                      "name": "[concat(parameters('resourceName'), '/Microsoft.Insights/', parameters('profileName'))]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "workspaceId": "[parameters('logAnalytics')]",
+                        "metrics": [ { "category": "Transaction", "enabled": "[parameters('metricsEnabled')]" } ]
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "resourceName": { "value": "[field('name')]" },
+                  "location": { "value": "[field('location')]" },
+                  "logAnalytics": { "value": "[parameters('logAnalytics')]" },
+                  "profileName": { "value": "[parameters('profileName')]" },
+                  "metricsEnabled": { "value": "[parameters('metricsEnabled')]" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "deploy-diag-storage-blobservices-to-loganalytics",
+    "properties": {
+      "displayName": "Deploy diagnostic settings for Storage Account Blob services to a Log Analytics workspace",
+      "description": "Deploys diagnostic settings (all logs + metrics) for the blob service of Storage Accounts.",
+      "policyType": "Custom",
+      "mode": "Indexed",
+      "metadata": { "category": "Monitoring", "version": "1.0.0" },
+      "parameters": {
+        "effect": { "type": "String", "metadata": { "displayName": "Effect" }, "allowedValues": ["DeployIfNotExists", "AuditIfNotExists", "Disabled"], "defaultValue": "DeployIfNotExists" },
+        "profileName": { "type": "String", "metadata": { "displayName": "Profile name" }, "defaultValue": "AzPolicyDiagnosticSetting" },
+        "logAnalytics": { "type": "String", "metadata": { "displayName": "Log Analytics workspace", "strongType": "omsWorkspace", "assignPermissions": true } },
+        "metricsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable metrics" }, "defaultValue": true },
+        "logsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable logs" }, "defaultValue": true }
+      },
+      "policyRule": {
+        "if": { "field": "type", "equals": "Microsoft.Storage/storageAccounts/blobServices" },
+        "then": {
+          "effect": "[parameters('effect')]",
+          "details": {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "name": "[parameters('profileName')]",
+            "existenceCondition": {
+              "allOf": [
+                { "field": "Microsoft.Insights/diagnosticSettings/logs.enabled", "equals": "[parameters('logsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled", "equals": "[parameters('metricsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/workspaceId", "equals": "[parameters('logAnalytics')]" }
+              ]
+            },
+            "roleDefinitionIds": [
+              "/providers/microsoft.authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+              "/providers/microsoft.authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "resourceName": { "type": "string" },
+                    "location": { "type": "string" },
+                    "logAnalytics": { "type": "string" },
+                    "profileName": { "type": "string" },
+                    "metricsEnabled": { "type": "bool" },
+                    "logsEnabled": { "type": "bool" }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Storage/storageAccounts/blobServices/providers/diagnosticSettings",
+                      "apiVersion": "2021-05-01-preview",
+                      "name": "[concat(parameters('resourceName'), '/Microsoft.Insights/', parameters('profileName'))]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "workspaceId": "[parameters('logAnalytics')]",
+                        "metrics": [ { "category": "Transaction", "enabled": "[parameters('metricsEnabled')]" } ],
+                        "logs": [ { "categoryGroup": "allLogs", "enabled": "[parameters('logsEnabled')]" } ]
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "resourceName": { "value": "[field('fullName')]" },
+                  "location": { "value": "[field('location')]" },
+                  "logAnalytics": { "value": "[parameters('logAnalytics')]" },
+                  "profileName": { "value": "[parameters('profileName')]" },
+                  "metricsEnabled": { "value": "[parameters('metricsEnabled')]" },
+                  "logsEnabled": { "value": "[parameters('logsEnabled')]" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "deploy-diag-storage-fileservices-to-loganalytics",
+    "properties": {
+      "displayName": "Deploy diagnostic settings for Storage Account File services to a Log Analytics workspace",
+      "description": "Deploys diagnostic settings (all logs + metrics) for the file service of Storage Accounts.",
+      "policyType": "Custom",
+      "mode": "Indexed",
+      "metadata": { "category": "Monitoring", "version": "1.0.0" },
+      "parameters": {
+        "effect": { "type": "String", "metadata": { "displayName": "Effect" }, "allowedValues": ["DeployIfNotExists", "AuditIfNotExists", "Disabled"], "defaultValue": "DeployIfNotExists" },
+        "profileName": { "type": "String", "metadata": { "displayName": "Profile name" }, "defaultValue": "AzPolicyDiagnosticSetting" },
+        "logAnalytics": { "type": "String", "metadata": { "displayName": "Log Analytics workspace", "strongType": "omsWorkspace", "assignPermissions": true } },
+        "metricsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable metrics" }, "defaultValue": true },
+        "logsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable logs" }, "defaultValue": true }
+      },
+      "policyRule": {
+        "if": { "field": "type", "equals": "Microsoft.Storage/storageAccounts/fileServices" },
+        "then": {
+          "effect": "[parameters('effect')]",
+          "details": {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "name": "[parameters('profileName')]",
+            "existenceCondition": {
+              "allOf": [
+                { "field": "Microsoft.Insights/diagnosticSettings/logs.enabled", "equals": "[parameters('logsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled", "equals": "[parameters('metricsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/workspaceId", "equals": "[parameters('logAnalytics')]" }
+              ]
+            },
+            "roleDefinitionIds": [
+              "/providers/microsoft.authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+              "/providers/microsoft.authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "resourceName": { "type": "string" },
+                    "location": { "type": "string" },
+                    "logAnalytics": { "type": "string" },
+                    "profileName": { "type": "string" },
+                    "metricsEnabled": { "type": "bool" },
+                    "logsEnabled": { "type": "bool" }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Storage/storageAccounts/fileServices/providers/diagnosticSettings",
+                      "apiVersion": "2021-05-01-preview",
+                      "name": "[concat(parameters('resourceName'), '/Microsoft.Insights/', parameters('profileName'))]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "workspaceId": "[parameters('logAnalytics')]",
+                        "metrics": [ { "category": "Transaction", "enabled": "[parameters('metricsEnabled')]" } ],
+                        "logs": [ { "categoryGroup": "allLogs", "enabled": "[parameters('logsEnabled')]" } ]
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "resourceName": { "value": "[field('fullName')]" },
+                  "location": { "value": "[field('location')]" },
+                  "logAnalytics": { "value": "[parameters('logAnalytics')]" },
+                  "profileName": { "value": "[parameters('profileName')]" },
+                  "metricsEnabled": { "value": "[parameters('metricsEnabled')]" },
+                  "logsEnabled": { "value": "[parameters('logsEnabled')]" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "deploy-diag-storage-queueservices-to-loganalytics",
+    "properties": {
+      "displayName": "Deploy diagnostic settings for Storage Account Queue services to a Log Analytics workspace",
+      "description": "Deploys diagnostic settings (all logs + metrics) for the queue service of Storage Accounts.",
+      "policyType": "Custom",
+      "mode": "Indexed",
+      "metadata": { "category": "Monitoring", "version": "1.0.0" },
+      "parameters": {
+        "effect": { "type": "String", "metadata": { "displayName": "Effect" }, "allowedValues": ["DeployIfNotExists", "AuditIfNotExists", "Disabled"], "defaultValue": "DeployIfNotExists" },
+        "profileName": { "type": "String", "metadata": { "displayName": "Profile name" }, "defaultValue": "AzPolicyDiagnosticSetting" },
+        "logAnalytics": { "type": "String", "metadata": { "displayName": "Log Analytics workspace", "strongType": "omsWorkspace", "assignPermissions": true } },
+        "metricsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable metrics" }, "defaultValue": true },
+        "logsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable logs" }, "defaultValue": true }
+      },
+      "policyRule": {
+        "if": { "field": "type", "equals": "Microsoft.Storage/storageAccounts/queueServices" },
+        "then": {
+          "effect": "[parameters('effect')]",
+          "details": {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "name": "[parameters('profileName')]",
+            "existenceCondition": {
+              "allOf": [
+                { "field": "Microsoft.Insights/diagnosticSettings/logs.enabled", "equals": "[parameters('logsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled", "equals": "[parameters('metricsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/workspaceId", "equals": "[parameters('logAnalytics')]" }
+              ]
+            },
+            "roleDefinitionIds": [
+              "/providers/microsoft.authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+              "/providers/microsoft.authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "resourceName": { "type": "string" },
+                    "location": { "type": "string" },
+                    "logAnalytics": { "type": "string" },
+                    "profileName": { "type": "string" },
+                    "metricsEnabled": { "type": "bool" },
+                    "logsEnabled": { "type": "bool" }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Storage/storageAccounts/queueServices/providers/diagnosticSettings",
+                      "apiVersion": "2021-05-01-preview",
+                      "name": "[concat(parameters('resourceName'), '/Microsoft.Insights/', parameters('profileName'))]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "workspaceId": "[parameters('logAnalytics')]",
+                        "metrics": [ { "category": "Transaction", "enabled": "[parameters('metricsEnabled')]" } ],
+                        "logs": [ { "categoryGroup": "allLogs", "enabled": "[parameters('logsEnabled')]" } ]
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "resourceName": { "value": "[field('fullName')]" },
+                  "location": { "value": "[field('location')]" },
+                  "logAnalytics": { "value": "[parameters('logAnalytics')]" },
+                  "profileName": { "value": "[parameters('profileName')]" },
+                  "metricsEnabled": { "value": "[parameters('metricsEnabled')]" },
+                  "logsEnabled": { "value": "[parameters('logsEnabled')]" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "deploy-diag-storage-tableservices-to-loganalytics",
+    "properties": {
+      "displayName": "Deploy diagnostic settings for Storage Account Table services to a Log Analytics workspace",
+      "description": "Deploys diagnostic settings (all logs + metrics) for the table service of Storage Accounts.",
+      "policyType": "Custom",
+      "mode": "Indexed",
+      "metadata": { "category": "Monitoring", "version": "1.0.0" },
+      "parameters": {
+        "effect": { "type": "String", "metadata": { "displayName": "Effect" }, "allowedValues": ["DeployIfNotExists", "AuditIfNotExists", "Disabled"], "defaultValue": "DeployIfNotExists" },
+        "profileName": { "type": "String", "metadata": { "displayName": "Profile name" }, "defaultValue": "AzPolicyDiagnosticSetting" },
+        "logAnalytics": { "type": "String", "metadata": { "displayName": "Log Analytics workspace", "strongType": "omsWorkspace", "assignPermissions": true } },
+        "metricsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable metrics" }, "defaultValue": true },
+        "logsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable logs" }, "defaultValue": true }
+      },
+      "policyRule": {
+        "if": { "field": "type", "equals": "Microsoft.Storage/storageAccounts/tableServices" },
+        "then": {
+          "effect": "[parameters('effect')]",
+          "details": {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "name": "[parameters('profileName')]",
+            "existenceCondition": {
+              "allOf": [
+                { "field": "Microsoft.Insights/diagnosticSettings/logs.enabled", "equals": "[parameters('logsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled", "equals": "[parameters('metricsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/workspaceId", "equals": "[parameters('logAnalytics')]" }
+              ]
+            },
+            "roleDefinitionIds": [
+              "/providers/microsoft.authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+              "/providers/microsoft.authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "resourceName": { "type": "string" },
+                    "location": { "type": "string" },
+                    "logAnalytics": { "type": "string" },
+                    "profileName": { "type": "string" },
+                    "metricsEnabled": { "type": "bool" },
+                    "logsEnabled": { "type": "bool" }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Storage/storageAccounts/tableServices/providers/diagnosticSettings",
+                      "apiVersion": "2021-05-01-preview",
+                      "name": "[concat(parameters('resourceName'), '/Microsoft.Insights/', parameters('profileName'))]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "workspaceId": "[parameters('logAnalytics')]",
+                        "metrics": [ { "category": "Transaction", "enabled": "[parameters('metricsEnabled')]" } ],
+                        "logs": [ { "categoryGroup": "allLogs", "enabled": "[parameters('logsEnabled')]" } ]
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "resourceName": { "value": "[field('fullName')]" },
+                  "location": { "value": "[field('location')]" },
+                  "logAnalytics": { "value": "[parameters('logAnalytics')]" },
+                  "profileName": { "value": "[parameters('profileName')]" },
+                  "metricsEnabled": { "value": "[parameters('metricsEnabled')]" },
+                  "logsEnabled": { "value": "[parameters('logsEnabled')]" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "deploy-diag-webapp-to-loganalytics",
+    "properties": {
+      "displayName": "Deploy diagnostic settings for Web Apps to a Log Analytics workspace",
+      "description": "Deploys diagnostic settings (all logs + all metrics) for App Service web apps (excludes function apps) to a Log Analytics workspace.",
+      "policyType": "Custom",
+      "mode": "Indexed",
+      "metadata": { "category": "Monitoring", "version": "1.0.0" },
+      "parameters": {
+        "effect": { "type": "String", "metadata": { "displayName": "Effect" }, "allowedValues": ["DeployIfNotExists", "AuditIfNotExists", "Disabled"], "defaultValue": "DeployIfNotExists" },
+        "profileName": { "type": "String", "metadata": { "displayName": "Profile name" }, "defaultValue": "AzPolicyDiagnosticSetting" },
+        "logAnalytics": { "type": "String", "metadata": { "displayName": "Log Analytics workspace", "strongType": "omsWorkspace", "assignPermissions": true } },
+        "metricsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable metrics" }, "defaultValue": true },
+        "logsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable logs" }, "defaultValue": true }
+      },
+      "policyRule": {
+        "if": {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.Web/sites" },
+            { "field": "kind", "contains": "app" },
+            { "field": "kind", "notContains": "functionapp" }
+          ]
+        },
+        "then": {
+          "effect": "[parameters('effect')]",
+          "details": {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "name": "[parameters('profileName')]",
+            "existenceCondition": {
+              "allOf": [
+                { "field": "Microsoft.Insights/diagnosticSettings/logs.enabled", "equals": "[parameters('logsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled", "equals": "[parameters('metricsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/workspaceId", "equals": "[parameters('logAnalytics')]" }
+              ]
+            },
+            "roleDefinitionIds": [
+              "/providers/microsoft.authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+              "/providers/microsoft.authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "resourceName": { "type": "string" },
+                    "location": { "type": "string" },
+                    "logAnalytics": { "type": "string" },
+                    "profileName": { "type": "string" },
+                    "metricsEnabled": { "type": "bool" },
+                    "logsEnabled": { "type": "bool" }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Web/sites/providers/diagnosticSettings",
+                      "apiVersion": "2021-05-01-preview",
+                      "name": "[concat(parameters('resourceName'), '/Microsoft.Insights/', parameters('profileName'))]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "workspaceId": "[parameters('logAnalytics')]",
+                        "metrics": [ { "category": "AllMetrics", "enabled": "[parameters('metricsEnabled')]" } ],
+                        "logs": [ { "categoryGroup": "allLogs", "enabled": "[parameters('logsEnabled')]" } ]
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "resourceName": { "value": "[field('name')]" },
+                  "location": { "value": "[field('location')]" },
+                  "logAnalytics": { "value": "[parameters('logAnalytics')]" },
+                  "profileName": { "value": "[parameters('profileName')]" },
+                  "metricsEnabled": { "value": "[parameters('metricsEnabled')]" },
+                  "logsEnabled": { "value": "[parameters('logsEnabled')]" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "deploy-diag-mysql-flexibleserver-to-loganalytics",
+    "properties": {
+      "displayName": "Deploy diagnostic settings for Azure Database for MySQL flexible servers to a Log Analytics workspace",
+      "description": "Deploys diagnostic settings (all logs, e.g. audit and slow query + all metrics) for MySQL flexible servers to a Log Analytics workspace.",
+      "policyType": "Custom",
+      "mode": "Indexed",
+      "metadata": { "category": "Monitoring", "version": "1.0.0" },
+      "parameters": {
+        "effect": { "type": "String", "metadata": { "displayName": "Effect" }, "allowedValues": ["DeployIfNotExists", "AuditIfNotExists", "Disabled"], "defaultValue": "DeployIfNotExists" },
+        "profileName": { "type": "String", "metadata": { "displayName": "Profile name" }, "defaultValue": "AzPolicyDiagnosticSetting" },
+        "logAnalytics": { "type": "String", "metadata": { "displayName": "Log Analytics workspace", "strongType": "omsWorkspace", "assignPermissions": true } },
+        "metricsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable metrics" }, "defaultValue": true },
+        "logsEnabled": { "type": "Boolean", "metadata": { "displayName": "Enable logs" }, "defaultValue": true }
+      },
+      "policyRule": {
+        "if": { "field": "type", "equals": "Microsoft.DBforMySQL/flexibleServers" },
+        "then": {
+          "effect": "[parameters('effect')]",
+          "details": {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "name": "[parameters('profileName')]",
+            "existenceCondition": {
+              "allOf": [
+                { "field": "Microsoft.Insights/diagnosticSettings/logs.enabled", "equals": "[parameters('logsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled", "equals": "[parameters('metricsEnabled')]" },
+                { "field": "Microsoft.Insights/diagnosticSettings/workspaceId", "equals": "[parameters('logAnalytics')]" }
+              ]
+            },
+            "roleDefinitionIds": [
+              "/providers/microsoft.authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+              "/providers/microsoft.authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "resourceName": { "type": "string" },
+                    "location": { "type": "string" },
+                    "logAnalytics": { "type": "string" },
+                    "profileName": { "type": "string" },
+                    "metricsEnabled": { "type": "bool" },
+                    "logsEnabled": { "type": "bool" }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.DBforMySQL/flexibleServers/providers/diagnosticSettings",
+                      "apiVersion": "2021-05-01-preview",
+                      "name": "[concat(parameters('resourceName'), '/Microsoft.Insights/', parameters('profileName'))]",
+                      "location": "[parameters('location')]",
+                      "properties": {
+                        "workspaceId": "[parameters('logAnalytics')]",
+                        "metrics": [ { "category": "AllMetrics", "enabled": "[parameters('metricsEnabled')]" } ],
+                        "logs": [ { "categoryGroup": "allLogs", "enabled": "[parameters('logsEnabled')]" } ]
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "resourceName": { "value": "[field('name')]" },
+                  "location": { "value": "[field('location')]" },
+                  "logAnalytics": { "value": "[parameters('logAnalytics')]" },
+                  "profileName": { "value": "[parameters('profileName')]" },
+                  "metricsEnabled": { "value": "[parameters('metricsEnabled')]" },
+                  "logsEnabled": { "value": "[parameters('logsEnabled')]" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]
